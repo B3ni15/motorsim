@@ -792,7 +792,7 @@ function Radiator({ stateRef }: { stateRef: RefObject<SimState> }) {
 /* ------------------------------------------------------------------------- */
 /* Hajtáslánc: kuplungház, ZF váltó, kardán, differenciálmű, féltengelyek     */
 /* ------------------------------------------------------------------------- */
-function Gearbox({ stateRef, controlsRef }: Props) {
+function Gearbox({ controlsRef }: Props) {
   const gearRef = useRef<HTMLDivElement>(null!);
   const lever = useRef<THREE.Group>(null!);
   useFrame(() => {
