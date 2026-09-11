@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "motor-szim", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev", "--prefix", "motor-szim"], "port": 3000 }
+  ]
+}
