@@ -46,6 +46,10 @@ export default function Simulator() {
   const audioRef = useRef<CarAudio | null>(null);
   const smooth = useRef({ tq: 0, clutch: 0 });
   const epbTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** a felületről (gomb / 3D kapcsoló) kért EPB-kapcsolóállás */
+  const epbHold = useRef<-1 | 0 | 1>(0);
+  const steerByKey = useRef(false);
+  const hornUi = useRef(false);
   const chime = useRef({ count: 0, last: 0 });
   const indCancel = useRef({ armed: false });
 
@@ -96,9 +100,11 @@ export default function Simulator() {
 
   const epbPulse = useCallback(
     (dir: -1 | 1) => {
+      epbHold.current = dir;
       controlsRef.current.epbSwitch = dir;
       if (epbTimer.current) clearTimeout(epbTimer.current);
       epbTimer.current = setTimeout(() => {
+        epbHold.current = 0;
         controlsRef.current.epbSwitch = 0;
         syncUi();
       }, 1100);
@@ -202,9 +208,12 @@ export default function Simulator() {
       const right = keys.has("d") || keys.has("arrowright");
       if (left !== right) {
         c.steer = ramp(c.steer, (right ? 1 : -1) * maxSteer, 1.4);
+        steerByKey.current = true;
         changed = true;
-      } else if (c.steer !== 0) {
+      } else if (steerByKey.current) {
+        // billentyűvel kormányozva magától visszaáll (a csúszkával beállított érték megmarad)
         c.steer = ramp(c.steer, 0, 2.2);
+        if (c.steer === 0) steerByKey.current = false;
         changed = true;
       }
       // index önvisszakapcsolás kanyar után
@@ -216,8 +225,8 @@ export default function Simulator() {
           changed = true;
         }
       }
-      c.epbSwitch = keys.has("p") ? 1 : keys.has("o") ? -1 : epbTimer.current ? c.epbSwitch : 0;
-      b.horn = keys.has("b");
+      c.epbSwitch = keys.has("p") ? 1 : keys.has("o") ? -1 : epbHold.current;
+      b.horn = keys.has("b") || hornUi.current;
 
       // fizika (időlassítás: a pedálok valós időben, a fizika lassítva)
       acc += dt * timeScaleRef.current;
@@ -531,9 +540,14 @@ export default function Simulator() {
                 ⏻ START / STOP <span className="text-xs opacity-70">(I)</span>
               </button>
               <button
-                onMouseDown={() => setControl("epbSwitch", s.epb === "released" || s.epb === "releasing" || Math.abs(s.speed) > 0.5 ? 1 : -1)}
-                onMouseUp={() => setControl("epbSwitch", 0)}
-                onMouseLeave={() => ctl.epbSwitch !== 0 && setControl("epbSwitch", 0)}
+                onMouseDown={() => {
+                  if (epbTimer.current) clearTimeout(epbTimer.current);
+                  epbHold.current = s.epb === "released" || s.epb === "releasing" || Math.abs(s.speed) > 0.5 ? 1 : -1;
+                }}
+                onMouseUp={() => (epbHold.current = 0)}
+                onMouseLeave={() => (epbHold.current = 0)}
+                onTouchStart={() => (epbHold.current = s.epb === "released" || Math.abs(s.speed) > 0.5 ? 1 : -1)}
+                onTouchEnd={() => (epbHold.current = 0)}
                 className={`w-28 py-2 rounded font-semibold select-none ${s.epb === "applied" ? "bg-red-700 hover:bg-red-600" : "bg-slate-700 hover:bg-slate-600"}`}
                 title="Rögzítőfék: húzás (P) / oldás fékpedállal (O). Menet közben tartva vészfékez."
               >
@@ -552,7 +566,18 @@ export default function Simulator() {
                 </span>
                 <span className="text-xs">A/D · ←/→</span>
               </div>
-              <input type="range" min={-1} max={1} step={0.01} value={ctl.steer} onChange={(e) => setControl("steer", Number(e.target.value))} className="w-full accent-slate-400" />
+              <input
+                type="range"
+                min={-1}
+                max={1}
+                step={0.01}
+                value={ctl.steer}
+                onChange={(e) => {
+                  steerByKey.current = false;
+                  setControl("steer", Number(e.target.value));
+                }}
+                className="w-full accent-slate-400"
+              />
             </div>
 
             <div>
@@ -592,9 +617,9 @@ export default function Simulator() {
               <Toggle on={body.hazard} warn onClick={() => interact({ type: "hazard" })} label="⚠ Vészvillogó (F)" />
               <Toggle on={body.wiper > 0} onClick={() => ((bodyRef.current.wiper = ((body.wiper + 1) % 3) as BodyCtl["wiper"]), syncUi())} label={`Ablaktörlő ${body.wiper ? body.wiper + "." : "ki"} (T)`} />
               <button
-                onMouseDown={() => (bodyRef.current.horn = true)}
-                onMouseUp={() => (bodyRef.current.horn = false)}
-                onMouseLeave={() => (bodyRef.current.horn = false)}
+                onMouseDown={() => (hornUi.current = true)}
+                onMouseUp={() => (hornUi.current = false)}
+                onMouseLeave={() => (hornUi.current = false)}
                 className="py-1.5 rounded bg-slate-700 hover:bg-slate-600 select-none"
               >
                 📯 Kürt (B)

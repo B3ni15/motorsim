@@ -79,6 +79,8 @@ await p.waitForTimeout(300);
 await p.keyboard.press("2");
 await p.keyboard.up(" ");
 check("kuplunggal 2-esbe vált", (await st()).gear === 2);
+// megvárjuk, míg a kuplung teljesen felenged
+for (let i = 0; i < 60 && (await p.evaluate(() => window.__golf.controlsRef.current.clutch)) > 0.05; i++) await p.waitForTimeout(250);
 const g0 = (await st()).grind;
 await p.keyboard.press("3");
 await p.waitForTimeout(300);
