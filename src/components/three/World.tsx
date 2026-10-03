@@ -85,15 +85,15 @@ export default function World() {
           </mesh>
         ))}
       </group>
-      <instancedMesh ref={dashes} args={[undefined, undefined, NDASH]} receiveShadow>
+      <instancedMesh ref={dashes} args={[undefined, undefined, NDASH]} receiveShadow frustumCulled={false}>
         <planeGeometry args={[3, 0.13]} />
         <meshStandardMaterial color="#f1f5f9" roughness={0.8} />
       </instancedMesh>
-      <instancedMesh ref={posts} args={[undefined, undefined, NPOST]} castShadow>
+      <instancedMesh ref={posts} args={[undefined, undefined, NPOST]} castShadow frustumCulled={false}>
         <boxGeometry args={[0.12, 1.0, 0.12]} />
         <meshStandardMaterial color="#f8fafc" roughness={0.6} />
       </instancedMesh>
-      <instancedMesh ref={trees} args={[undefined, undefined, NTREE]} castShadow>
+      <instancedMesh ref={trees} args={[undefined, undefined, NTREE]} castShadow frustumCulled={false}>
         <coneGeometry args={[1.6, 6, 8]} />
         <meshStandardMaterial color="#14532d" roughness={0.9} />
       </instancedMesh>
