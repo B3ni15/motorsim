@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "BMW M52B28 szimuláció",
-  description: "BMW M52B28 soros hathengeres motor és E36 328i jármű élő fizikai szimulációja",
+  title: "VW Golf 7.5 R szimuláció",
+  description: "Volkswagen Golf 7.5 R (2019) élő fizikai szimulációja: EA888 turbómotor, 6 fokozatú kézi váltó, 4MOTION, belső nézet, röntgen nézet, maradandó károk",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

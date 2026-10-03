@@ -1,8 +1,8 @@
-# BMW M52B28 motor- és járműszimuláció
+# Volkswagen Golf 7.5 R (2019) – élő autó- és motorszimuláció
 
-BMW M52B28 (2.8 l soros hathengeres, DOHC 24 szelep, VANOS, 193 LE / 280 Nm) élő fizikai
-szimulációja E36 328i hajtáslánccal (ZF 5 fokozat, 2.93 diffi, hátsókerék-hajtás), Next.js-ben,
-teljes 3D autóval (three.js / react-three-fiber).
+Volkswagen Golf 7.5 R (2019, EU, OPF) élő fizikai szimulációja Next.js-ben, teljes 3D autóval
+(three.js / react-three-fiber), belső nézettel, átlátszó röntgen nézettel, szintetizált hanggal
+és maradandó károkkal.
 
 ## Indítás
 
@@ -16,59 +16,103 @@ Majd nyisd meg: http://localhost:3000
 ## Tesztek
 
 ```bash
-npm test
+npm test               # fizika, károk, hangszintézis, motor- és karosszéria-geometria (vitest)
+npm run test:browser   # böngészős tesztek (fut a dev szerver mellett, Chromium kell hozzá)
 ```
+
+A böngészős teszt (`scripts/browser-test.mjs`):
+
+- **illeszkedés-ellenőrzés**: a `/teszt?fit=1` oldal minden 3D alkatrész csúcspontjait az autó
+  koordinátáiba transzformálja, és ellenőrzi, hogy a karosszérián belül vannak-e (nem lóg át a
+  motorháztetőn, tetőn, ablakon, oldalfalon, nem ér le a talajra);
+- vezetés: indítás, elindulás (az EPB magától kiold), váltás, csikorgás kuplung nélkül;
+- minden kameranézet bejárása képernyőképekkel; a váltókar egérrel húzása a H-kulisszában;
+- a hang (AudioWorklet) valóban szól-e; konzolhibák.
+
+A `geometry.test.ts` minden főtengely-szögnél ellenőrzi, hogy a dugattyú nem ütközik a
+szelepekkel, és hogy a kerekek a karosszérián / kerékíven belül maradnak.
+
+## Nézetek
+
+| Nézet | Leírás |
+|-------|--------|
+| Külső | körbeforgatható külső nézet; az ajtókra, motorháztetőre, csomagtérajtóra kattintva nyílnak |
+| Belső (vezető) | a vezetőülésből; körbenézhető, a műszerfal (Active Info Display) és a Discover Pro kijelző élő, a **váltókar egérrel húzható**, a gombok kattinthatók |
+| Üldöző kamera | az autó mögött követ |
+| Motortér | kinyílik a motorháztető, látszik a motor |
+| Röntgen (skeleton) | átlátszó karosszéria – a régi „váz” nézet: Teljes autó, Motor, Hengerek, Hajtáslánc (4MOTION), Fékek, Turbó + kipufogó, élő feliratokkal |
 
 ## Vezérlés
 
 | Billentyű | Funkció |
 |-----------|---------|
-| I | gyújtás be/ki |
-| K (tartva) | önindító |
-| W / ↑ | gáz |
-| S / ↓ | fék |
-| Space (tartva) | kuplung benyomva; felengedés lassú = félkuplung |
-| 1–5, N/0 | fokozat; Q/E le/fel |
-
-A 3D nézet egérrel forgatható, görgővel nagyítható, jobb gombbal mozgatható.
-A fejlécben nézet-előbeállítások (Teljes autó, Motor, Hengerek, Hajtáslánc, Fék / hátsó),
-felirat-kapcsoló és időlassítás (1× … 1/100) található.
+| I / Enter | Start/Stop gomb (kuplunggal: indítás, kuplung nélkül: csak gyújtás, járó motornál: leállítás) |
+| W / ↑ · S / ↓ | gáz · fék |
+| Space (tartva) | kuplung; felengedés lassú = félkuplung |
+| A / D · ← / → | kormány (sebességfüggő) |
+| 1–6, R, N/0, Q/E | fokozat – csak kuplunggal! |
+| P (tartva) / O | rögzítőfék húzása (menet közben: vészfékezés) / oldása (fékpedállal) |
+| H · M | Auto Hold · vezetési mód (Comfort / Normal / Race) |
+| V · J / K · F · B · T | fényszóró · index · vészvillogó · kürt · ablaktörlő |
+| G · C | vezetőajtó · biztonsági öv |
+| Tab · X | következő nézet · röntgen ki/be |
 
 ## Fizika (src/lib/engine.ts)
 
-Fix 0,5 ms-os időlépés (2000 lépés/s), főtengely-dinamika nyomatékgörbével, súrlódással és
-hengerenkénti nyomaték-lüktetéssel.
+Fix 0,5 ms-os lépés (2000 lépés/s).
 
-- **Motor:** 2793 cm³, 84 × 84 mm, hajtókar 135 mm, 10,2:1, gyújtási sorrend 1-5-3-6-2-4,
-  280 Nm @ 3950 / 142 kW @ 5300, alapjárat 700 (hidegen 1000), határoló 6500 (üzemanyag-lezárás),
-  lefulladás 350 alatt, betolásos indítás
-- **ECU / befecskendezés (multipoint EFI):** MAP, levegő tömegáram, töltési fok, szívólevegő-hőmérséklet,
-  AFR-szabályzás (λ=1 melegen, hidegindítási és teljes terhelésű dúsítás), injektor nyitási idő
-- **Hőháztartás:** hűtővíz (termosztát 84–92 °C, elektromos ventilátor 97 °C-tól, vízpumpa a motorról jár),
-  külön olaj-, hengerfej-, kipufogógáz- és katalizátor-hőmérséklet; leállított motor órák alatt hűl le;
-  108 °C felett nyomaték-visszavétel, 128 °C-nál a motor beragad
-- **Elektromos rendszer:** 60 Ah akkumulátor (töltöttség, belső ellenállás hidegen és lemerülve nő),
-  önindító 170 A (lemerült akkuval nem forgat), ékszíjas generátor 2,6:1 áttétellel (max 90 A,
-  14,2 V-os szabályzó, terhelő nyomaték a motoron), fogyasztók, töltés-lámpa
-- **Hajtáslánc:** csúszó/kapcsolt kuplung, ZF S5D 320Z (4,21 / 2,49 / 1,66 / 1,24 / 1,00),
-  2,93 differenciálmű, 225/50 R16, 1420 kg jármű légellenállással és gördülési ellenállással
-- **Fékek:** első/hátsó féktárcsa-hőmérséklet a fékezési energiából, menetszél- és sugárzási hűtés,
-  fading 450 °C felett, fékfolyadék forrása 230 °C felett
-- **Kipufogórendszer:** 2 × 3-1 leömlő → 2 katalizátor (begyújtás 250 °C felett) → középső és hátsó dob →
-  végcső; izzás terheléskor, füst-részecskék (hidegen fehér pára)
-- **Időlassítás** 1× … 1/100 (a pedálok valós időben, a fizika lassítva)
+- **Motor:** EA888 Gen3 2.0 TSI, 1984 cm³, 82,5 × 92,8 mm, hajtókar 144 mm, 9,3:1, gyújtási sorrend
+  1-3-4-2, 221 kW / 380 Nm (2000–5300), alapjárat 750 (hidegen 1150), határoló 6800, 250 km/h
+  végsebesség-korlát, túlfutási üzemanyag-lezárás, lefulladásgátló (kuplungfelengedéskor emelt alapjárat)
+- **IS38 turbó:** turbófordulat a kipufogógáz-áramból (turbólyuk), wastegate-szabályzás ~1,25 bar-ig,
+  lefúvató (diverter) szelep gázelvételkor, intercooler
+- **ECU:** elektronikus gázpedál nyomatékigénnyel (Comfort/Normal/Race gázpedál-karakterisztika),
+  FSI + MPI befecskendezés, λ=1 / hidegindítási / teljes terhelésű dúsítás, kopogásszabályzás, ASR
+- **Hajtáslánc:** 02Q 6 fokozat + R (3,36 / 2,09 / 1,48 / 1,09 / 0,85 / 0,70, R 3,82), 4,24 végáttétel,
+  kettős tömegű lendkerék, kuplung hőmérséklettel, 4MOTION (Haldex: terhelésre max 50% hátra),
+  235/35 R19, 1505 kg, kormányzás (egynyomú modell, tapadási korláttal)
+- **EPB + Auto Hold:** valós logika – álló helyzetben behúz, oldás csak fékpedállal, elinduláskor
+  magától old (ha az öv be van kötve és az ajtó csukva), menet közben tartva ESC-vészfékezés
+- **Hő, elektromos rendszer, fékek, kipufogó (kat + OPF, 4 végcső)** – fading, fékfolyadék-forrás stb.
 
-## 3D jelenet (src/components/Engine3D.tsx)
+### Maradandó károk – csak az oldal újratöltése javítja
 
-1 egység = 10 cm, +X hátrafelé. Teljes autó:
+| Kár | Kiváltó ok | Következmény |
+|-----|-----------|--------------|
+| Szinkron / fokozat | kuplung nélküli váltás (4 csikorgás) | a fokozat nem kapcsolható |
+| Hátramenet | mozgó autónál R | R letörik |
+| Szelepek | mechanikus túlpörgetés > 7400 (rossz visszaváltás) | a henger kiesik (gyújtáskimaradás) |
+| Motortörés | > 9000 1/perc | hajtókar átüti a blokkot – a motor halott |
+| Hajtókar-csapágy | határolón tartás, hideg motor pörgetése, túlforró olaj | kopogás, olajnyomás esik, végül beragad |
+| Hengerfej-tömítés | túlmelegedés > 120 °C | fogy a hűtőfolyadék, fehér füst, 132 °C-nál beragad |
+| Dugattyú (LSPI) | padlógáz < 1800 1/perc magas fokozatban | megreped, gyújtáskimaradás, kék füst |
+| Turbó | forró leállítás, hideg olaj + töltőnyomás | kevesebb töltőnyomás, füst |
+| Kuplung | csúsztatás (pl. behúzott kézifék ellen) | égett szag, csúszik |
 
-- **Motor:** 6 henger 4-4 szeleppel, coil-on-plug tekercsek, injektorok porlasztási kúppal,
-  2 vezérműtengely bütykökkel, 6 forgattyús főtengely ellensúlyokkal, vezérműlánc + VANOS,
-  ékszíj (generátor, vízpumpa + viszkó-ventilátor, szervószivattyú, klímakompresszor, feszítő),
-  szívócső fojtószeleppel, légszűrő/MAF, hűtő elektromos ventilátorral, olajteknő, olajszűrő
-- **Hajtáslánc:** kettős tömegű lendkerék, kuplung, önindító, harangház, ZF váltóház váltókarral,
-  kétrészes kardántengely csuklókkal, differenciálmű, féltengelyek
-- **Autó:** 4 kerék (gumi, felni, hőmérséklet szerint izzó féktárcsa, féknyereg, felfüggesztés),
-  E36 karosszéria-váz ülésekkel és kormánnyal, üzemanyagtank a hátsó ülés alatt folyadékszinttel,
-  akkumulátor a csomagtartóban, teljes kipufogórendszer füsttel
-- Élő feliratok a hőmérsékletekkel és mérőértékekkel (kapcsolhatók; a Teljes autó nézetben csak a főbbek)
+A „Vissza a startra” gomb csak az autót és az állapotot állítja vissza – a károk megmaradnak.
+
+## Hang (src/lib/audio.ts)
+
+AudioWorklet-alapú valós idejű szintézis: a worklet mintánként számolja a főtengely szögét, minden
+gyújtásnál (1-3-4-2) kipufogó-impulzust indít a kipufogórendszer rezonanciáin (gyújtáskimaradás
+hallható). Továbbá: szívózaj, turbósípolás, diverter-szelep, durrogás túlfutáskor (Race módban
+gyakrabban), önindító, csapágykopogás, LSPI-kopogás, váltócsikorgás, motortörés, gördülési és
+szélzaj, EPB motor, index relé, kürt, gong. Belső nézetben tompított hang + „Soundaktor” mélyhang.
+
+## 3D (src/components/three)
+
+Méter egység, +X előre, +Z jobbra, origó a tengelytáv közepe alatt.
+
+- `shape.ts`, `bodyShader.ts` – paraméteres karosszéria (valós méretek: 4277 × 1799 × ~1440 mm,
+  tengelytáv 2630 mm); a shader objektumtérben dönti el, mi festék (Lapiz Blue), üveg, lámpa, rács,
+  illesztés – élesek a határvonalak; nyíló ajtók, motorháztető, csomagtérajtó; működő lámpák
+  (DRL, tompított, féklámpa, dinamikus index, tolatólámpa)
+- `Interior.tsx`, `screens.ts` – műszerfal, élő Active Info Display és Performance Monitor,
+  kormány, pedálok, húzható váltókar, Start/Stop, EPB, Auto Hold, sportülések, öv
+- `Powertrain.tsx`, `engineGeom.ts` – keresztben beépített, 12°-kal döntött EA888: dugattyúk,
+  hajtókarok, szelepek, vezérműtengelyek, kiegyensúlyozó tengelyek, vezérműlánc, ékszíj, IS38 turbó
+  forgó kerekekkel; váltó 7 fogaskerékpárral (a kapcsolt zölden, a tönkrement pirosan), PTU, kardán,
+  Haldex, hátsó diffi; hűtő, intercooler, akku, tank
+- `Chassis.tsx` – 19"-os felnik, gumik, féktárcsák (izzanak), nyergek, McPherson / többlengőkaros futómű
+- `Exhaust.tsx` – turbó → kat + OPF → dobok → 4 végcső, füst és lángnyelvek
+- `fitcheck.ts` – illeszkedés-ellenőrzés (lásd Tesztek)

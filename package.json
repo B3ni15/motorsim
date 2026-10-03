@@ -1,12 +1,13 @@
 {
-  "name": "motor-szim",
+  "name": "golf-r-szim",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:browser": "node scripts/browser-test.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.8",
@@ -25,6 +26,7 @@
     "@types/three": "^0.185.4",
     "eslint": "^9.39.5",
     "eslint-config-next": "^15.5.25",
+    "playwright-core": "1.56",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^3"
